@@ -32,6 +32,10 @@ Ever wished you could peek inside WordPress's data structure without writing a s
 
 Whether you're debugging plugins, themes, or core WordPress functionality, Data Debug Tool makes it easy to find and inspect the data you need.
 
+== Screenshots ==
+
+1. Data Debug Tool
+
 == Changelog ==
 
 = 0.1.0 =
