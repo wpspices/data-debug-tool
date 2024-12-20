@@ -39,7 +39,7 @@ Whether you're debugging plugins, themes, or core WordPress functionality, Data 
 == Changelog ==
 
 = 0.1.1 =
-* Added Screenshots 
+* Remove Screenshots 
 
 = 0.1.0 =
 * Initial release
