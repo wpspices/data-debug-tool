@@ -1,3 +1,4 @@
+/.wordpress-org
 /.git
 /.github
 /node_modules
@@ -5,13 +6,6 @@
 
 .distignore
 .gitignore
-
-# Dependency directories
-node_modules/
-plugin-zip/
-.git/
-.github/
-src/
 
 # Logs
 logs

@@ -4,7 +4,7 @@
  * Description:       A simple lightweight tool to debug WordPress data.
  * Requires at least: 6.1
  * Requires PHP:      7.2
- * Version:           0.1.0
+ * Version:           0.1.1
  * Author:            wpspices
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
@@ -37,7 +37,7 @@ class DATA_DEBUG_TOOL {
 	 *
 	 * @var string
 	 */
-	private $version = '0.1.0';
+	private $version = '0.1.1';
 
 	/**
 	 * Plugin hook suffix.

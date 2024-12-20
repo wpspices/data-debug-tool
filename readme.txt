@@ -3,7 +3,7 @@ Contributors:      wpspices
 Tags:              tool, debug, data, tools
 Requires at least: 6.1
 Tested up to:      6.7
-Stable tag:        0.1.0
+Stable tag:        0.1.1
 License:           GPL-2.0-or-later
 License URI:       https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -37,6 +37,9 @@ Whether you're debugging plugins, themes, or core WordPress functionality, Data 
 1. Data Debug Tool
 
 == Changelog ==
+
+= 0.1.1 =
+* Added Screenshots 
 
 = 0.1.0 =
 * Initial release
