@@ -32,38 +32,26 @@ class DATA_DEBUG_TOOL_API {
 	private $helper;
 
 	/**
-	 * Tool option schema name
-	 *
-	 * @var string
-	 */
-	private $tool_schema_name = 'wp_debug_tool_tschema';
-
-
-
-	/**
 	 * Initialize the API
 	 *
 	 * @return void
 	 */
 	public function init() {
-		$user = wp_get_current_user();
-		if ( ! empty( $user ) && ( $user instanceof WP_User ) && in_array( 'administrator', $user->roles ) ) {
-			add_action( 'rest_api_init', array( $this, 'register_routes' ) );
-			$this->helper = new DATA_DEBUG_TOOL_HELPER();
-		}
+		$this->helper = new DATA_DEBUG_TOOL_HELPER();
+		add_action( 'rest_api_init', array( $this, 'register_routes' ) );
 	}
 
 	/**
 	 * Get API arguments
 	 *
-	 * @param array $args
+	 * @param array $args Endpoint arguments.
 	 * @return array
 	 */
 	private function get_api_args( $args = array() ) {
 		return array_merge(
 			array(
 				'show_in_index'       => false,
-				'methods'             => WP_REST_Server::CREATABLE,
+				'methods'             => array( WP_REST_Server::READABLE, WP_REST_Server::CREATABLE ),
 				'permission_callback' => array( $this, 'check_admin_permission' ),
 			),
 			$args
@@ -73,24 +61,18 @@ class DATA_DEBUG_TOOL_API {
 	/**
 	 * Return rest response
 	 *
-	 * @param array   $res response to send
-	 * @param integer $code response code by default 400 means error
+	 * @param mixed   $res Response data to send.
+	 * @param integer $code Response HTTP status code (defaults to 200).
 	 *
-	 * @return object WP_REST_Response rest response
+	 * @return WP_REST_Response REST response.
 	 */
 	public function response( $res, $code = 200 ) {
-		// Return response
 		return new WP_REST_Response(
 			array(
 				'data'    => $res,
 				'success' => 200 === $code,
 			),
-			$code,
-			array(
-				'Content-type: application/json',
-				'Access-Control-Allow-Origin: *',
-				'Access-control-allow-credentials: true',
-			)
+			$code
 		);
 	}
 
@@ -107,11 +89,34 @@ class DATA_DEBUG_TOOL_API {
 	/**
 	 * Check admin permission
 	 *
-	 * @return bool
+	 * @param WP_REST_Request $request Request object.
+	 * @return bool|WP_Error
 	 */
 	public function check_admin_permission( $request ) {
+		if ( ! function_exists( 'current_user_can' ) || ! current_user_can( 'manage_options' ) ) {
+			return new WP_Error(
+				'rest_forbidden',
+				__( 'Sorry, you are not allowed to access this resource.', 'data-debug-tool' ),
+				array( 'status' => rest_authorization_required_code() )
+			);
+		}
+
 		$params = $this->sanitize_params( $request );
-		return ! empty( $params['debug_nonce'] ) && function_exists( 'wp_verify_nonce' ) && wp_verify_nonce( $params['debug_nonce'], 'wp_debug_rest' ) && function_exists( 'is_user_logged_in' ) && is_user_logged_in() && function_exists( 'current_user_can' ) && current_user_can( 'manage_options' );
+		$nonce  = ! empty( $params['debug_nonce'] ) ? $params['debug_nonce'] : $request->get_header( 'x_wp_nonce' );
+
+		if ( ! empty( $nonce ) && ( wp_verify_nonce( $nonce, 'wp_debug_rest' ) || wp_verify_nonce( $nonce, 'wp_rest' ) ) ) {
+			return true;
+		}
+
+		if ( is_user_logged_in() && current_user_can( 'manage_options' ) ) {
+			return true;
+		}
+
+		return new WP_Error(
+			'rest_cookie_invalid_nonce',
+			__( 'Cookie check failed or invalid security nonce.', 'data-debug-tool' ),
+			array( 'status' => 403 )
+		);
 	}
 
 	/**
@@ -341,15 +346,16 @@ class DATA_DEBUG_TOOL_API {
 		$option_name = sanitize_text_field( $params['search'] );
 
 		if ( empty( $option_name ) ) {
-			return $this->response( array( 'message' => __( 'Option name is required.', 'data-debug-tool' ) ) );
+			return $this->response( array( 'message' => __( 'Option name is required.', 'data-debug-tool' ) ), 400 );
 		}
 
 		$option_value = get_option( $option_name, null );
 
-		if ( $option_value === null ) {
+		if ( null === $option_value ) {
 			$option_value = array(
 				'message' => __( 'Option not found.', 'data-debug-tool' ),
 			);
+			return $this->response( $option_value, 404 );
 		} else {
 			$option_value = array(
 				'name'  => $option_name,
@@ -449,23 +455,6 @@ class DATA_DEBUG_TOOL_API {
 	}
 
 	/**
-	 * Get table name with prefix
-	 *
-	 * @param string $table Table name.
-	 * @return string
-	 */
-	private function get_table_name( $table ) {
-		global $wpdb;
-
-		// If table doesn't start with prefix, add it
-		if ( strpos( $table, $wpdb->prefix ) !== 0 ) {
-			$table = $wpdb->prefix . $table;
-		}
-
-		return esc_sql( $table );
-	}
-
-	/**
 	 * Get post data by ID
 	 *
 	 * @param WP_REST_Request $request Request object.
@@ -476,13 +465,13 @@ class DATA_DEBUG_TOOL_API {
 		$params = $this->sanitize_params( $request );
 
 		if ( $this->helper->is_invalid_for_id( $params, 'id' ) ) {
-			return $this->response( array( 'message' => __( 'Missing or Invalid Post ID.', 'data-debug-tool' ) ) );
+			return $this->response( array( 'message' => __( 'Missing or Invalid Post ID.', 'data-debug-tool' ) ), 400 );
 		}
 
-		$post = get_post( sanitize_key( wp_unslash( $params['id'] ) ) );
+		$post = get_post( absint( $params['id'] ) );
 
 		if ( empty( $post ) ) {
-			return $this->response( array( 'message' => __( 'Post not found.', 'data-debug-tool' ) ) );
+			return $this->response( array( 'message' => __( 'Post not found.', 'data-debug-tool' ) ), 404 );
 		}
 
 		$meta = get_post_meta( $post->ID );
@@ -512,10 +501,10 @@ class DATA_DEBUG_TOOL_API {
 		// get parameters from request
 		$params = $this->sanitize_params( $request );
 		if ( $this->helper->is_invalid_for_id( $params, 'id' ) ) {
-			return $this->response( array( 'message' => __( 'Missing or Invalid Post ID.', 'data-debug-tool' ) ) );
+			return $this->response( array( 'message' => __( 'Missing or Invalid Post ID.', 'data-debug-tool' ) ), 400 );
 		}
 
-		$id       = $params['id'];
+		$id       = absint( $params['id'] );
 		$meta_key = isset( $params['key'] ) ? $params['key'] : '';
 
 		if ( ! empty( $meta_key ) ) {
@@ -525,7 +514,7 @@ class DATA_DEBUG_TOOL_API {
 		}
 
 		if ( empty( $meta ) ) {
-			return $this->response( array( 'message' => __( 'Post meta not found.', 'data-debug-tool' ) ) );
+			return $this->response( array( 'message' => __( 'Post meta not found.', 'data-debug-tool' ) ), 404 );
 		}
 
 		$meta_data = array();
@@ -557,18 +546,21 @@ class DATA_DEBUG_TOOL_API {
 		// get parameters from request
 		$params = $this->sanitize_params( $request );
 		if ( $this->helper->is_invalid_for_id( $params, 'id' ) ) {
-			return $this->response( array( 'message' => __( 'Missing or Invalid User ID.', 'data-debug-tool' ) ) );
+			return $this->response( array( 'message' => __( 'Missing or Invalid User ID.', 'data-debug-tool' ) ), 400 );
 		}
 
 		$user = get_user_by( 'id', absint( $params['id'] ) );
 
 		if ( ! $user ) {
-			return $this->response( array( 'message' => __( 'User not found.', 'data-debug-tool' ) ) );
+			return $this->response( array( 'message' => __( 'User not found.', 'data-debug-tool' ) ), 404 );
 		}
+
+		$user_data = clone $user->data;
+		unset( $user_data->user_pass, $user_data->user_activation_key );
 
 		return $this->response(
 			array(
-				'user'         => $user->data,
+				'user'         => $user_data,
 				'roles'        => $user->roles,
 				'capabilities' => $user->allcaps,
 			)
@@ -585,7 +577,7 @@ class DATA_DEBUG_TOOL_API {
 		// get parameters from request
 		$params = $this->sanitize_params( $request );
 		if ( $this->helper->is_invalid_for_id( $params, 'id' ) ) {
-			return $this->response( array( 'message' => __( 'Missing or Invalid User ID.', 'data-debug-tool' ) ) );
+			return $this->response( array( 'message' => __( 'Missing or Invalid User ID.', 'data-debug-tool' ) ), 400 );
 		}
 		$id       = absint( $params['id'] );
 		$meta_key = isset( $params['key'] ) ? $params['key'] : '';
@@ -597,7 +589,7 @@ class DATA_DEBUG_TOOL_API {
 		}
 
 		if ( empty( $meta ) ) {
-			return $this->response( array( 'message' => __( 'user meta not found.', 'data-debug-tool' ) ) );
+			return $this->response( array( 'message' => __( 'user meta not found.', 'data-debug-tool' ) ), 404 );
 		}
 
 		$meta_data = array();
@@ -606,6 +598,10 @@ class DATA_DEBUG_TOOL_API {
 			$meta_data[ $meta_key ] = $this->helper->decode_data( $meta, $params );
 		} else {
 			foreach ( $meta as $key => $value ) {
+				if ( 'session_tokens' === $key ) {
+					$meta_data[ $key ] = __( '[Hidden for security]', 'data-debug-tool' );
+					continue;
+				}
 				$meta_data[ $key ] = $this->helper->decode_data( $value[0], $params );
 			}
 		}
@@ -629,7 +625,7 @@ class DATA_DEBUG_TOOL_API {
 		// get parameters from request
 		$params = $this->sanitize_params( $request );
 		if ( $this->helper->is_invalid_for_id( $params, 'id' ) ) {
-			return $this->response( array( 'message' => __( 'Missing or Invalid Term ID.', 'data-debug-tool' ) ) );
+			return $this->response( array( 'message' => __( 'Missing or Invalid Term ID.', 'data-debug-tool' ) ), 400 );
 		}
 
 		$params['id'] = absint( $params['id'] );
@@ -637,7 +633,7 @@ class DATA_DEBUG_TOOL_API {
 		$term = get_term( $params['id'], empty( $params['taxonomy'] ) ? '' : $params['taxonomy'] );
 
 		if ( is_wp_error( $term ) || empty( $term ) ) {
-			return $this->response( array( 'message' => __( 'Term not found.', 'data-debug-tool' ) ) );
+			return $this->response( array( 'message' => __( 'Term not found.', 'data-debug-tool' ) ), 404 );
 		}
 
 		return $this->response(

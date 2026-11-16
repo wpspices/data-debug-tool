@@ -1,10 +1,15 @@
 import { useState } from '@wordpress/element';
-import { Button, Icon } from '@wordpress/components';
+import { Button } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
 const JsonViewer = ( { data } ) => {
-	if ( ! data ) return null;
-	const [ copyText, setCopyText ] = useState( __( 'Copy', 'data-debug-tool' ) );
+	const [ copyText, setCopyText ] = useState(
+		__( 'Copy', 'data-debug-tool' )
+	);
+
+	if ( ! data ) {
+		return null;
+	}
 
 	const escapeHtml = ( str ) => {
 		return str
@@ -17,29 +22,42 @@ const JsonViewer = ( { data } ) => {
 
 	const handleCopy = () => {
 		const plainText = JSON.stringify( data, null, 2 );
-		navigator.clipboard.writeText( plainText );
-		setCopyText( __( 'Copied!', 'data-debug-tool' ) );
-		setTimeout( () => {
-			setCopyText( __( 'Copy', 'data-debug-tool' ) );
-		}, 2000 );
+		if (
+			typeof window !== 'undefined' &&
+			window.navigator &&
+			window.navigator.clipboard
+		) {
+			window.navigator.clipboard.writeText( plainText );
+			setCopyText( __( 'Copied!', 'data-debug-tool' ) );
+			setTimeout( () => {
+				setCopyText( __( 'Copy', 'data-debug-tool' ) );
+			}, 2000 );
+		}
 	};
 
 	const formatJSON = ( obj ) => {
-		if ( ! obj ) return '';
+		if ( ! obj ) {
+			return '';
+		}
 
 		const formatValue = ( value, indent = '' ) => {
-			if ( value === null ) return '<span class="json-null">null</span>';
-			if ( typeof value === 'boolean' )
+			if ( value === null ) {
+				return '<span class="json-null">null</span>';
+			}
+			if ( typeof value === 'boolean' ) {
 				return `<span class="json-boolean">${ value }</span>`;
-			if ( typeof value === 'number' )
+			}
+			if ( typeof value === 'number' ) {
 				return `<span class="json-number">${ value }</span>`;
+			}
 			if ( typeof value === 'string' ) {
 				const escaped = escapeHtml( value );
 				return `<span class="json-string">"<span class="json-string-value">${ escaped }</span>"</span>`;
 			}
 			if ( Array.isArray( value ) ) {
-				if ( value.length === 0 )
+				if ( value.length === 0 ) {
 					return '<span class="json-bracket">[]</span>';
+				}
 				const items = value
 					.map(
 						( item ) =>
@@ -53,8 +71,9 @@ const JsonViewer = ( { data } ) => {
 			}
 			if ( typeof value === 'object' ) {
 				const entries = Object.entries( value );
-				if ( entries.length === 0 )
+				if ( entries.length === 0 ) {
 					return '<span class="json-bracket">{}</span>';
+				}
 				const items = entries
 					.map(
 						( [ key, val ] ) =>
