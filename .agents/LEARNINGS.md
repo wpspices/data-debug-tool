@@ -59,3 +59,7 @@ This document is the persistent memory and feedback loop for AI agents working o
 5. **Plugin Check (PCP) Compliance for Internal Agent Documentation:**
    - WordPress Plugin Check flags markdown files in the plugin root with `unexpected_markdown_file` (only `README.md` and `CHANGELOG.md` are allowed in root).
    - Internal agent documentation must reside in `.agents/` (`.agents/AGENTS.md` and `.agents/LEARNINGS.md`), and `/.agents` must be added to `.distignore` to prevent inclusion in release packages.
+
+6. **Zero Local System Paths Rule:**
+   - Never commit or document absolute local host machine paths (e.g. `C:\laragon\...`, `/home/...`, `/Users/...`) in project files, markdown documentation (`AGENTS.md`, `LEARNINGS.md`), or source code.
+   - Always use repository-relative paths (e.g. `.agents/LEARNINGS.md`, `src/index.js`) or generic WordPress relative paths.

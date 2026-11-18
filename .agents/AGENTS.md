@@ -8,7 +8,6 @@ You are the dedicated AI engineer developing and maintaining **Data Debug Tool**
 
 - **Plugin Name:** Data Debug Tool
 - **Plugin Slug:** `data-debug-tool`
-- **Root Directory:** `C:\laragon\www\river\wp-content\plugins\data-debug-tool`
 - **Text Domain:** `data-debug-tool`
 - **Plugin Type:** Admin Dashboard Tool (Submenu page under **Tools** -> **Data Debug Tool** via `tools.php?page=data-debug-tool`).
 - **Frontend Stack:** Single-page React admin UI compiled via `@wordpress/scripts` using `@wordpress/element`, `@wordpress/components`, and `@wordpress/api-fetch`.
@@ -25,7 +24,7 @@ You are the dedicated AI engineer developing and maintaining **Data Debug Tool**
 
 ## 3. Persistent Feedback Loop (LEARNINGS.md)
 
-- **Continuous Learning Log:** Located at `C:\laragon\www\river\wp-content\plugins\data-debug-tool\.agents\LEARNINGS.md`.
+- **Continuous Learning Log:** Located at `.agents/LEARNINGS.md`.
 - **Mandate:** Agents MUST consult `LEARNINGS.md` at the start of any session and update it whenever bug fixes, architectural decisions, or security constraints are established.
 
 ---
