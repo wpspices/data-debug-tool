@@ -4,43 +4,30 @@ import {
 	SelectControl,
 	Button,
 	ToggleControl,
-	Panel,
-	PanelBody,
 } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
-import apiFetch from '@wordpress/api-fetch';
 
 const FiltersPanel = ( { onFilter, totalPages = 0 } ) => {
 	const [ selectedFilter, setSelectedFilter ] = useState( '' );
 	const [ params, setParams ] = useState( {} );
 	const [ isDecode, setIsDecode ] = useState( false );
-	const [ isExactMatch, setIsExactMatch ] = useState( true );
-	const [ tables, setTables ] = useState( [] );
-	const [ columns, setColumns ] = useState( [] );
-	const [ loading, setLoading ] = useState( false );
 	const [ currentPage, setCurrentPage ] = useState( 1 );
 	const [ localTotalPages, setLocalTotalPages ] = useState( 0 );
-	
+
 	useEffect( () => {
 		setLocalTotalPages( totalPages );
 	}, [ totalPages ] );
 
-
 	useEffect( () => {
-		// Reset pagination when filter changes
 		setCurrentPage( 1 );
 		setLocalTotalPages( 0 );
-	}, [ selectedFilter, params.table, params.column, params.search ] );
+	}, [ selectedFilter, params.search, params.id, params.key ] );
 
 	const handlePageChange = ( newPage ) => {
 		setCurrentPage( newPage );
 		handleSubmit( newPage );
 	};
 
-	/**
-	 * Get param fields
-	 *
-	 */
 	const getParamFields = () => {
 		switch ( selectedFilter ) {
 			case 'option':
@@ -64,10 +51,13 @@ const FiltersPanel = ( { onFilter, totalPages = 0 } ) => {
 						<TextControl
 							label={ __( 'ID', 'data-debug-tool' ) + '*' }
 							type="number"
-							min={1}
+							min={ 1 }
 							value={ params.id || '' }
 							onChange={ ( id ) =>
-								setParams( { ...params, id: parseInt( id ) } )
+								setParams( {
+									...params,
+									id: parseInt( id, 10 ) || '',
+								} )
 							}
 							required
 						/>
@@ -90,16 +80,15 @@ const FiltersPanel = ( { onFilter, totalPages = 0 } ) => {
 	};
 
 	const isValid = () => {
-		console.log( ' params ', params );
 		switch ( selectedFilter ) {
 			case 'option':
-				return !! params.search;
+				return Boolean( params.search );
 			case 'post':
 			case 'postmeta':
 			case 'user':
 			case 'usermeta':
 			case 'term':
-				return !! params.id;
+				return Boolean( params.id );
 			case 'plugins':
 			case 'themes':
 			case 'system-info':
@@ -110,22 +99,28 @@ const FiltersPanel = ( { onFilter, totalPages = 0 } ) => {
 	};
 
 	const handleSubmit = ( page = 1 ) => {
-		if ( ! selectedFilter || ! isValid() ) return;
+		if ( ! selectedFilter || ! isValid() ) {
+			return;
+		}
 
 		onFilter( {
 			endpoint: selectedFilter,
 			params: {
 				...params,
 				is_decode: isDecode ? 1 : 0,
-				debug_nonce: window.dataDebugTool.nonce,
-				page: page,
-				search_type: isExactMatch ? 'exact' : 'like',
+				debug_nonce:
+					window.dataDebugTool && window.dataDebugTool.nonce
+						? window.dataDebugTool.nonce
+						: '',
+				page,
 			},
 		} );
 	};
 
 	const renderPagination = () => {
-		if ( localTotalPages <= 1 ) return null;
+		if ( localTotalPages <= 1 ) {
+			return null;
+		}
 
 		return (
 			<div className="pagination-wrapper">
@@ -165,13 +160,15 @@ const FiltersPanel = ( { onFilter, totalPages = 0 } ) => {
 		);
 	};
 
-	// Convert filters object to SelectControl options
-	const filterOptions = Object.entries( window.dataDebugTool.filters ).map(
-		( [ value, label ] ) => ( {
-			value,
-			label,
-		} )
-	);
+	const filterOptions =
+		window.dataDebugTool && window.dataDebugTool.filters
+			? Object.entries( window.dataDebugTool.filters ).map(
+					( [ value, label ] ) => ( {
+						value,
+						label,
+					} )
+			  )
+			: [];
 
 	return (
 		<div className="filters-container">
@@ -181,13 +178,13 @@ const FiltersPanel = ( { onFilter, totalPages = 0 } ) => {
 				options={ [
 					{
 						value: '',
-						label: __( 'Select an action...', 'data-debug-tool' ),
+						label: __( 'Select an action…', 'data-debug-tool' ),
 					},
 					...filterOptions,
 				] }
 				onChange={ ( value ) => {
 					setSelectedFilter( value );
-					setParams( {} ); // Reset params when filter changes
+					setParams( {} );
 				} }
 			/>
 			{ getParamFields() }

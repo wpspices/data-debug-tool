@@ -1,19 +1,19 @@
-const gulp = require( 'gulp' ),
-	notify = require( 'gulp-notify' ),
-	del = require( 'del' ),
-	zip = require( 'gulp-zip' );
+const gulp = require( 'gulp' );
+const notify = require( 'gulp-notify' );
+const del = require( 'del' );
+const zip = require( 'gulp-zip' );
 const { series } = require( 'gulp' );
 
 // Clean files
-function clean_files() {
-	let cleanPath = [ './plugin-zip/**' ];
+function cleanFiles() {
+	const cleanPath = [ './plugin-zip/**' ];
 	return del( cleanPath, { force: true } );
 }
 
 // create zip
-function create_zip() {
+function createZip() {
 	// Zip files list
-	var zipPath = [
+	const zipPath = [
 		'./',
 		'./**',
 		'!./node_modules',
@@ -42,10 +42,10 @@ function create_zip() {
 		);
 }
 
-// create zip
-function create_dev_zip() {
+// create dev zip
+function createDevZip() {
 	// Zip files list
-	var zipPath = [
+	const zipPath = [
 		'./',
 		'./**',
 		'!./node_modules',
@@ -71,7 +71,7 @@ function create_dev_zip() {
 }
 
 // (cmd: gulp build): run for development
-exports.build = series( clean_files, create_dev_zip );
+exports.build = series( cleanFiles, createDevZip );
 
 // (cmd: gulp): run for production
-exports.default = series( clean_files, create_zip );
+exports.default = series( cleanFiles, createZip );

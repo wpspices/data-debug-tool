@@ -2,7 +2,7 @@
 import { useState, useEffect } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import apiFetch from '@wordpress/api-fetch';
-import { Button, Icon } from '@wordpress/components';
+import { Button, Icon, Notice } from '@wordpress/components';
 import FiltersPanel from './FiltersPanel';
 import JsonViewer from './JsonViewer';
 
@@ -12,9 +12,11 @@ const App = () => {
 	const [ totalPages, setTotalPages ] = useState( 0 );
 	const [ isFullscreen, setIsFullscreen ] = useState( false );
 	const [ isLoading, setIsLoading ] = useState( false );
+	const [ errorMessage, setErrorMessage ] = useState( null );
 
 	const fetchData = async ( { endpoint, params } ) => {
 		setIsLoading( true );
+		setErrorMessage( null );
 		try {
 			const response = await apiFetch( {
 				path: `/data-debug-tool/v1/${ endpoint }`,
@@ -22,25 +24,24 @@ const App = () => {
 				data: params,
 			} );
 
-			if (
-				( undefined !== response && undefined !== response.data ) ||
-				null !== response.data
-			) {
+			if ( response && undefined !== response.data ) {
 				setData( response.data );
-				// Update total pages if pagination info is available
-				if ( response.data.pages ) {
+				if ( response.data && response.data.pages ) {
 					setTotalPages( response.data.pages );
 				}
 			} else {
-				console.error(
-					'API Error:',
-					response.message || 'Unknown error occurred'
+				setErrorMessage(
+					( response && response.message ) ||
+						__( 'Unknown error occurred.', 'data-debug-tool' )
 				);
 				setData( null );
 				setTotalPages( 0 );
 			}
 		} catch ( error ) {
-			console.error( 'Error fetching data:', error );
+			setErrorMessage(
+				( error && error.message ) ||
+					__( 'Error fetching data from server.', 'data-debug-tool' )
+			);
 			setData( null );
 			setTotalPages( 0 );
 		}
@@ -50,22 +51,15 @@ const App = () => {
 	const toggleFullscreen = () => {
 		const elem = document.documentElement;
 
-		if (
-			! document.fullscreenElement &&
-			! document.webkitFullscreenElement
-		) {
+		if ( ! document.fullscreenElement ) {
 			if ( elem.requestFullscreen ) {
 				elem.requestFullscreen();
-			} else if ( elem.webkitRequestFullscreen ) {
-				elem.webkitRequestFullscreen();
 			}
 			setIsFullscreen( true );
 			document.body.classList.add( 'fullscreen-mode' );
 		} else {
 			if ( document.exitFullscreen ) {
 				document.exitFullscreen();
-			} else if ( document.webkitExitFullscreen ) {
-				document.webkitExitFullscreen();
 			}
 			setIsFullscreen( false );
 			document.body.classList.remove( 'fullscreen-mode' );
@@ -74,28 +68,17 @@ const App = () => {
 
 	useEffect( () => {
 		const handleFullscreenChange = () => {
-			if (
-				! document.fullscreenElement &&
-				! document.webkitFullscreenElement
-			) {
+			if ( ! document.fullscreenElement ) {
 				setIsFullscreen( false );
 				document.body.classList.remove( 'fullscreen-mode' );
 			}
 		};
 
 		document.addEventListener( 'fullscreenchange', handleFullscreenChange );
-		document.addEventListener(
-			'webkitfullscreenchange',
-			handleFullscreenChange
-		);
 
 		return () => {
 			document.removeEventListener(
 				'fullscreenchange',
-				handleFullscreenChange
-			);
-			document.removeEventListener(
-				'webkitfullscreenchange',
 				handleFullscreenChange
 			);
 		};
@@ -105,6 +88,11 @@ const App = () => {
 		fetchData( filters );
 	};
 
+	const appTitle =
+		window.dataDebugTool && window.dataDebugTool.title
+			? window.dataDebugTool.title
+			: __( 'Data Debug Tool', 'data-debug-tool' );
+
 	return (
 		<div
 			className={ `debug-tool-wrapper ${ darkMode ? 'dark-mode' : '' }` }
@@ -112,7 +100,7 @@ const App = () => {
 			<header className="debug-tool-header">
 				<div className="header-title">
 					<Icon icon="admin-tools" size={ 30 } />
-					<h1>{ window.dataDebugTool.title }</h1>
+					<h1>{ appTitle }</h1>
 				</div>
 				<div className="header-controls">
 					<Button
@@ -143,6 +131,15 @@ const App = () => {
 					/>
 				</aside>
 				<main className="output-panel">
+					{ errorMessage && (
+						<Notice
+							status="error"
+							isDismissible={ false }
+							className="debug-tool-error-notice"
+						>
+							{ errorMessage }
+						</Notice>
+					) }
 					{ isLoading ? (
 						<div className="loading-spinner"></div>
 					) : (
