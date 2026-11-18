@@ -84,7 +84,7 @@ const JsonViewer = ( { data } ) => {
 					.join( '<span class="json-comma">,</span>\n' );
 				return `<span class="json-bracket">{</span>\n${ items }\n${ indent }<span class="json-bracket">}</span>`;
 			}
-			return String( value );
+			return escapeHtml( String( value ) );
 		};
 
 		return formatValue( obj );

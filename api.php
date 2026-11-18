@@ -108,7 +108,8 @@ class DATA_DEBUG_TOOL_API {
 			return true;
 		}
 
-		if ( is_user_logged_in() && current_user_can( 'manage_options' ) ) {
+		// Allow non-cookie authenticated requests (e.g. Application Passwords, CLI) with manage_options capability.
+		if ( current_user_can( 'manage_options' ) && ( ! defined( 'LOGGED_IN_COOKIE' ) || empty( $_COOKIE[ LOGGED_IN_COOKIE ] ) ) ) {
 			return true;
 		}
 
