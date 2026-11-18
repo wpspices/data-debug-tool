@@ -1,6 +1,7 @@
 /.wordpress-org
 /.git
 /.github
+/.agents
 /node_modules
 /src
 
